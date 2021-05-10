@@ -30,6 +30,14 @@
     "tslib": "^2.2.0",
     "typescript": "^4.2.4"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/christianliebel/handwriting-textarea.git"
+  },
+  "bugs": {
+    "url": "https://github.com/christianliebel/handwriting-textarea/issues"
+  },
+  "homepage": "https://github.com/christianliebel/handwriting-textarea#readme",
   "engines": {
     "node": "14.x"
   },
