@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit';
-import { property, state } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 
-/* global HandwritingModelConstraint, HandwritingRecognizer */
+/* global HandwritingDrawing, HandwritingHints, HandwritingModelConstraint, HandwritingRecognizer, HandwritingStroke */
 
 // TODO: Forms participation? https://web.dev/more-capable-form-controls/#defining-a-form-associated-custom-element
 export class HandwritingTextarea extends LitElement {
@@ -16,7 +16,13 @@ export class HandwritingTextarea extends LitElement {
 
   @state() supported = false;
 
+  @query('canvas') canvas?: HTMLCanvasElement;
+
   #recognizer?: HandwritingRecognizer;
+
+  #drawing?: HandwritingDrawing;
+
+  #activeStroke?: { startTimestamp: number; stroke: HandwritingStroke };
 
   async connectedCallback() {
     super.connectedCallback();
@@ -47,15 +53,44 @@ export class HandwritingTextarea extends LitElement {
   }
 
   __onPointerDown(evt: PointerEvent) {
-    console.log(evt, this.#recognizer);
+    // TODO: Only allow a single pointer
+    const hints = {
+      recognitionType: 'text', // TODO: Pass in via property?
+      inputType: evt.pointerType,
+      textContext: '', // TODO: existing text from textarea?
+      alternatives: 0, // TODO: Pass in via property?
+    } as HandwritingHints;
+    this.#drawing = this.#recognizer?.startDrawing(hints);
+    this.#activeStroke = {
+      startTimestamp: Date.now(),
+      stroke: new HandwritingStroke(),
+    };
+    this.#drawing?.addStroke(this.#activeStroke.stroke);
+    this.__addPoint(evt);
   }
 
   __onPointerMove(evt: PointerEvent) {
-    console.log(evt, this.#recognizer);
+    this.__addPoint(evt);
   }
 
-  __onPointerUp(evt: PointerEvent) {
-    console.log(evt, this.#recognizer);
+  async __onPointerUp(evt: PointerEvent) {
+    if (this.#activeStroke && this.#drawing) {
+      this.__addPoint(evt);
+
+      const [prediction] = await this.#drawing.getPrediction();
+      console.log(prediction);
+    }
+  }
+
+  __addPoint({ offsetX: x, offsetY: y }: PointerEvent) {
+    if (this.#activeStroke) {
+      const t = Date.now() - this.#activeStroke.startTimestamp;
+      this.#activeStroke.stroke.addPoint({ x, y, t });
+
+      // TODO: Continuous drawing, devicePixelRatio
+      const ctx = this.canvas?.getContext('2d', { desynchronized: true });
+      ctx?.fillRect(x, y, 2, 2);
+    }
   }
 
   render() {
