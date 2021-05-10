@@ -4,7 +4,14 @@
     {
       "name": "handwriting-textarea",
       "description": "Allows users to enter text by handwriting.",
-      "properties": [],
+      "properties": [
+        {
+          "name": "languages",
+          "type": "String",
+          "description": "Comma-separated list of languages that should be recognized.",
+          "default": "en"
+        }
+      ],
       "events": [],
       "slots": [],
       "cssProperties": []
