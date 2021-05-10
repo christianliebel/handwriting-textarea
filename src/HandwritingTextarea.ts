@@ -18,6 +18,8 @@ export class HandwritingTextarea extends LitElement {
 
   @query('canvas') canvas?: HTMLCanvasElement;
 
+  @query('textarea') textarea?: HTMLTextAreaElement;
+
   #recognizer?: HandwritingRecognizer;
 
   #drawing?: HandwritingDrawing;
@@ -52,20 +54,23 @@ export class HandwritingTextarea extends LitElement {
     this.supported = true;
   }
 
+  // TODO: Only allow one pointer at a time
   __onPointerDown(evt: PointerEvent) {
-    // TODO: Only allow a single pointer
-    const hints = {
-      recognitionType: 'text', // TODO: Pass in via property?
-      inputType: evt.pointerType,
-      textContext: '', // TODO: existing text from textarea?
-      alternatives: 0, // TODO: Pass in via property?
-    } as HandwritingHints;
-    this.#drawing = this.#recognizer?.startDrawing(hints);
+    // TODO: When to start a new drawing? Reactive after n ms of no input?
+    if (!this.#drawing) {
+      const hints = {
+        recognitionType: 'text', // TODO: Pass in via property?
+        inputType: evt.pointerType,
+        textContext: '', // TODO: existing text from textarea?
+        alternatives: 0, // TODO: Pass in via property?
+      } as HandwritingHints;
+      this.#drawing = this.#recognizer?.startDrawing(hints);
+    }
+
     this.#activeStroke = {
       startTimestamp: Date.now(),
       stroke: new HandwritingStroke(),
     };
-    this.#drawing?.addStroke(this.#activeStroke.stroke);
     this.__addPoint(evt);
   }
 
@@ -74,11 +79,12 @@ export class HandwritingTextarea extends LitElement {
   }
 
   async __onPointerUp(evt: PointerEvent) {
-    if (this.#activeStroke && this.#drawing) {
+    if (this.#activeStroke && this.#drawing && this.textarea) {
       this.__addPoint(evt);
+      this.#drawing?.addStroke(this.#activeStroke.stroke);
 
-      const [prediction] = await this.#drawing.getPrediction();
-      console.log(prediction);
+      const [firstPrediction] = await this.#drawing.getPrediction();
+      this.textarea.value = firstPrediction?.text ?? '';
     }
   }
 
@@ -87,7 +93,7 @@ export class HandwritingTextarea extends LitElement {
       const t = Date.now() - this.#activeStroke.startTimestamp;
       this.#activeStroke.stroke.addPoint({ x, y, t });
 
-      // TODO: Continuous drawing, devicePixelRatio
+      // TODO: Continuous drawing, devicePixelRatio, don't request context over and over again (-> Lit?)
       const ctx = this.canvas?.getContext('2d', { desynchronized: true });
       ctx?.fillRect(x, y, 2, 2);
     }
@@ -103,7 +109,12 @@ export class HandwritingTextarea extends LitElement {
     // TODO: Pass-through textarea attributes?
     return html`
       <textarea cols="60" rows="5"></textarea>
-      <h2>Handwriting supported? ${this.supported}</h2>
+      <h2>Handwriting recognition supported? ${this.supported}</h2>
+      <p>
+        ${this.supported
+          ? 'Handwriting recognition is supported on this platform, so feel free to draw here:'
+          : 'Too bad! Handwriting recognition is not supported on this platform.'}
+      </p>
       ${this.supported ? canvas : ''}
     `;
   }
