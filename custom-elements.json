@@ -3,30 +3,11 @@
   "tags": [
     {
       "name": "handwriting-textarea",
-      "description": "A component with a title and an action counter",
-      "properties": [
-        {
-          "name": "title",
-          "type": "String",
-          "description": "The title of your component",
-          "default": "Hey there"
-        },
-        {
-          "name": "counter",
-          "type": "Number",
-          "description": "An action counter",
-          "default": 0
-        }
-      ],
+      "description": "Allows users to enter text by handwriting.",
+      "properties": [],
       "events": [],
       "slots": [],
-      "cssProperties": [
-        {
-          "name": "--handwriting-textarea-text-color",
-          "description": "Main Text Color",
-          "type": "Color"
-        }
-      ]
+      "cssProperties": []
     }
   ]
 }
