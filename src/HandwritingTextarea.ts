@@ -1,4 +1,5 @@
-import { html, css, LitElement, property } from 'lit-element';
+import { css, html, LitElement } from 'lit';
+import { property, query } from 'lit/decorators.js';
 
 export class HandwritingTextarea extends LitElement {
   static styles = css`
