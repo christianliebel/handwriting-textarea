@@ -28,10 +28,7 @@ export class HandwritingTextarea extends LitElement {
 
   @property({ type: String }) languages = 'en';
 
-  // TODO: Update custom-elements.json
   @property({ type: String }) recognitionType = 'text';
-
-  @property({ type: String, attribute: true, reflect: true }) placeholder = '';
 
   @state() supported = false;
 
@@ -88,12 +85,8 @@ export class HandwritingTextarea extends LitElement {
       ></handwriting-textarea-canvas>
     `;
 
-    // TODO: Pass-through textarea attributes?
     return html`
-      <textarea
-        style="width: 500px; height: 300px;"
-        placeholder="${this.placeholder}"
-      ></textarea>
+      <textarea style="width: 500px; height: 300px;"></textarea>
       ${this.supported && !this.enabled ? drawButton : ''}
       ${this.enabled ? canvas : ''}
     `;

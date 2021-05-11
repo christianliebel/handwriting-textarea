@@ -10,6 +10,11 @@
           "type": "String",
           "description": "Comma-separated list of languages that should be recognized.",
           "default": "en"
+        }, {
+          "name": "recognitionType",
+          "type": "\"text\"|\"email\"|\"number\"|\"per-character\"",
+          "description": "The type of content to be recognized.",
+          "default": "text"
         }
       ],
       "events": [],
