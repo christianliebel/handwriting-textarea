@@ -3,7 +3,7 @@
 [![Node.js CI](https://github.com/christianliebel/handwriting-textarea/actions/workflows/node.js.yml/badge.svg)](https://github.com/christianliebel/handwriting-textarea/actions/workflows/node.js.yml)
 
 A webcomponent that allows users to enter text by handwriting.
-In order to use this component, your target platform (i.e., browser and operating system) need to support the Handwriting Recognition API.
+In order to use this component, your target platform (i.e., browser and operating system) needs to support the Handwriting Recognition API.
 
 ## Installation
 ```bash
