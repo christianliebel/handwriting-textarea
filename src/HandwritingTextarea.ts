@@ -3,6 +3,10 @@ import { property, query, state } from 'lit/decorators.js';
 import { RecognizeEvent } from './RecognizeEvent.js';
 
 // TODO: Forms participation? https://web.dev/more-capable-form-controls/#defining-a-form-associated-custom-element
+// TODO: Styled buttons
+// TODO: Selection handling
+// TODO: Overall comments
+
 export class HandwritingTextarea extends LitElement {
   static get styles() {
     return css`
@@ -39,10 +43,10 @@ export class HandwritingTextarea extends LitElement {
   async connectedCallback() {
     super.connectedCallback();
 
-    this.supported = await this.__checkSupport();
+    this.supported = await this.__isHandwritingRecognitionSupported();
   }
 
-  private async __checkSupport() {
+  private async __isHandwritingRecognitionSupported() {
     if (typeof navigator.queryHandwritingRecognizerSupport === 'undefined') {
       return false;
     }
