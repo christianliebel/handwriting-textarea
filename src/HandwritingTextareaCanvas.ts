@@ -10,8 +10,20 @@ import { RecognizeEvent } from './RecognizeEvent.js';
 export class HandwritingTextareaCanvas extends LitElement {
   static readonly styles = css`
     canvas {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
       border: 1px solid black;
       touch-action: none;
+
+      background-color: rgba(255 255 255 / 0.5);
+      backdrop-filter: blur(3px);
+    }
+
+    button {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
     }
   `;
 
@@ -26,6 +38,8 @@ export class HandwritingTextareaCanvas extends LitElement {
     startTime: number;
   };
 
+  #closeTimeoutHandle?: number;
+
   @query('canvas') canvas?: HTMLCanvasElement;
 
   @property({ type: String }) languages?: string;
@@ -39,9 +53,9 @@ export class HandwritingTextareaCanvas extends LitElement {
       throw new Error('Unable to find canvas.');
     }
 
-    // TODO: Dynamically adjust size
-    this.canvas.width = 500 * devicePixelRatio;
-    this.canvas.height = 500 * devicePixelRatio;
+    const clientRect = this.canvas.getBoundingClientRect();
+    this.canvas.width = clientRect.width * devicePixelRatio;
+    this.canvas.height = clientRect.height * devicePixelRatio;
 
     const ctx = this.canvas?.getContext('2d', { desynchronized: true });
     if (!ctx) {
@@ -56,7 +70,7 @@ export class HandwritingTextareaCanvas extends LitElement {
     this.#ctx = ctx;
   }
 
-  __onPointerDown(event: PointerEvent) {
+  private __onPointerDown(event: PointerEvent) {
     if (this.#activeOperation) {
       // Only support one pointer at a time
       event.preventDefault();
@@ -79,7 +93,9 @@ export class HandwritingTextareaCanvas extends LitElement {
     this.#ctx?.moveTo(event.offsetX, event.offsetY);
   }
 
-  async __setUpRecognizer({ pointerType }: PointerEvent): Promise<void> {
+  private async __setUpRecognizer({
+    pointerType,
+  }: PointerEvent): Promise<void> {
     if (typeof navigator.createHandwritingRecognizer === 'undefined') {
       throw new Error(
         'Handwriting Recognizer API is not supported on this platform.'
@@ -101,7 +117,7 @@ export class HandwritingTextareaCanvas extends LitElement {
     });
   }
 
-  __onPointerMove(event: PointerEvent) {
+  private __onPointerMove(event: PointerEvent) {
     if (this.#activeOperation) {
       this.__addPoint(event.offsetX, event.offsetY);
       this.#ctx?.lineTo(event.offsetX, event.offsetY);
@@ -109,20 +125,7 @@ export class HandwritingTextareaCanvas extends LitElement {
     }
   }
 
-  __onPointerUp() {
-    if (this.#drawing && this.#activeOperation) {
-      this.#drawing.addStroke(this.#activeOperation.stroke);
-      // eslint-disable-next-line no-console
-      this.#drawing.getPrediction().then(predictions =>
-        // TODO: If prediction is defined.
-        this.dispatchEvent(new RecognizeEvent(predictions[0].text))
-      );
-    }
-
-    this.#activeOperation = undefined;
-  }
-
-  __addPoint(x: number, y: number) {
+  private __addPoint(x: number, y: number) {
     this.#activeOperation?.stroke.addPoint({
       x,
       y,
@@ -130,14 +133,44 @@ export class HandwritingTextareaCanvas extends LitElement {
     });
   }
 
+  private __onPointerUp() {
+    if (this.#drawing && this.#activeOperation) {
+      this.#drawing.addStroke(this.#activeOperation.stroke);
+      this.__setCloseTimeout();
+    }
+
+    this.#activeOperation = undefined;
+  }
+
+  private __setCloseTimeout() {
+    if (this.#closeTimeoutHandle) {
+      clearTimeout(this.#closeTimeoutHandle);
+    }
+
+    this.#closeTimeoutHandle = window.setTimeout(
+      () => this.__predictAndSendEvent(),
+      1000
+    ); // TODO: get from outside
+  }
+
+  private async __predictAndSendEvent() {
+    let text = '';
+    if (this.#drawing) {
+      const [prediction] = await this.#drawing.getPrediction();
+      text = prediction?.text ?? '';
+    }
+
+    this.dispatchEvent(new RecognizeEvent(text));
+  }
+
   render() {
     return html`
       <canvas
-        style="width: 500px; height: 500px;"
         @pointerdown="${(event: PointerEvent) => this.__onPointerDown(event)}"
         @pointermove="${(event: PointerEvent) => this.__onPointerMove(event)}"
         @pointerup="${() => this.__onPointerUp()}"
       ></canvas>
+      <button @click="${() => this.__predictAndSendEvent()}">OK</button>
     `;
   }
 }

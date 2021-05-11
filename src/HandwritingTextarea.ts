@@ -1,12 +1,37 @@
-import { html, LitElement } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { RecognizeEvent } from './RecognizeEvent.js';
 
 // TODO: Forms participation? https://web.dev/more-capable-form-controls/#defining-a-form-associated-custom-element
 export class HandwritingTextarea extends LitElement {
+  static get styles() {
+    return css`
+      :host {
+        display: inline-grid;
+        position: relative;
+      }
+
+      button {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+      }
+
+      handwriting-textarea-canvas {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        z-index: 1;
+      }
+    `;
+  }
+
   @property({ type: String }) languages = 'en';
 
+  // TODO: Update custom-elements.json
   @property({ type: String }) recognitionType = 'text';
+
+  @property({ type: String, attribute: true, reflect: true }) placeholder = '';
 
   @state() supported = false;
 
@@ -43,27 +68,34 @@ export class HandwritingTextarea extends LitElement {
   private __onRecognize(event: RecognizeEvent) {
     if (this.textarea) {
       this.textarea.value = event.detail.text;
+      this.__toggleCanvas();
     }
   }
 
-  private __onClick() {
+  private __toggleCanvas() {
     this.enabled = this.supported && !this.enabled;
   }
 
   render() {
-    const button = html`
-      <button @click="${() => this.__onClick()}">Draw</button>
+    const drawButton = html`
+      <button @click="${() => this.__toggleCanvas()}">Draw</button>
     `;
 
-    const canvas = html` <handwriting-textarea-canvas
-      languages="en"
-      @recognize="${(event: RecognizeEvent) => this.__onRecognize(event)}"
-    ></handwriting-textarea-canvas>`;
+    const canvas = html`
+      <handwriting-textarea-canvas
+        languages="en"
+        @recognize="${(event: RecognizeEvent) => this.__onRecognize(event)}"
+      ></handwriting-textarea-canvas>
+    `;
 
     // TODO: Pass-through textarea attributes?
     return html`
-      <textarea cols="60" rows="10"></textarea>
-      ${this.supported ? button : ''} ${this.enabled ? canvas : ''}
+      <textarea
+        style="width: 500px; height: 300px;"
+        placeholder="${this.placeholder}"
+      ></textarea>
+      ${this.supported && !this.enabled ? drawButton : ''}
+      ${this.enabled ? canvas : ''}
     `;
   }
 }
