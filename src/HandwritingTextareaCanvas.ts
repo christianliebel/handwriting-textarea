@@ -4,7 +4,6 @@ import { RecognizeEvent } from './RecognizeEvent.js';
 
 /* global HandwritingDrawing, HandwritingRecognizer, HandwritingStroke */
 
-// TODO: Overall comments
 // TODO: Resize
 
 export class HandwritingTextareaCanvas extends LitElement {
@@ -38,7 +37,7 @@ export class HandwritingTextareaCanvas extends LitElement {
     startTime: number;
   };
 
-  #closeTimeoutHandle?: number;
+  #recognitionTimeoutHandle?: number;
 
   @query('canvas') canvas?: HTMLCanvasElement;
 
@@ -78,7 +77,6 @@ export class HandwritingTextareaCanvas extends LitElement {
     }
 
     if (!this.#recognizer) {
-      // TODO: Reset drawing?
       // The recognizer is only created once in the lifetime of this component.
       // We need to create it here to get access of the pointer type to pass
       // it as a hint to the recognizer.
@@ -102,7 +100,6 @@ export class HandwritingTextareaCanvas extends LitElement {
       );
     }
 
-    // TODO: Re-initialize recognizer on property changes?
     this.#recognizer = await navigator.createHandwritingRecognizer({
       languages: this.languages?.split(',') ?? [],
     });
@@ -119,6 +116,7 @@ export class HandwritingTextareaCanvas extends LitElement {
 
   private __onPointerMove(event: PointerEvent) {
     if (this.#activeOperation) {
+      this.__clearRecognitionTimeout();
       this.__addPoint(event.offsetX, event.offsetY);
       this.#ctx?.lineTo(event.offsetX, event.offsetY);
       this.#ctx?.stroke();
@@ -136,21 +134,24 @@ export class HandwritingTextareaCanvas extends LitElement {
   private __onPointerUp() {
     if (this.#drawing && this.#activeOperation) {
       this.#drawing.addStroke(this.#activeOperation.stroke);
-      this.__setCloseTimeout();
+      this.__setRecognitionTimeout();
     }
 
     this.#activeOperation = undefined;
   }
 
-  private __setCloseTimeout() {
-    if (this.#closeTimeoutHandle) {
-      clearTimeout(this.#closeTimeoutHandle);
-    }
-
-    this.#closeTimeoutHandle = window.setTimeout(
+  private __setRecognitionTimeout() {
+    this.__clearRecognitionTimeout();
+    this.#recognitionTimeoutHandle = window.setTimeout(
       () => this.__predictAndSendEvent(),
       1000
     ); // TODO: get from outside
+  }
+
+  private __clearRecognitionTimeout() {
+    if (this.#recognitionTimeoutHandle) {
+      clearTimeout(this.#recognitionTimeoutHandle);
+    }
   }
 
   private async __predictAndSendEvent() {
