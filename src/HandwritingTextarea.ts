@@ -10,6 +10,8 @@ export class HandwritingTextarea extends LitElement {
 
   @state() supported = false;
 
+  @state() enabled = false;
+
   @query('textarea') textarea?: HTMLTextAreaElement;
 
   async connectedCallback() {
@@ -44,7 +46,15 @@ export class HandwritingTextarea extends LitElement {
     }
   }
 
+  private __onClick() {
+    this.enabled = this.supported && !this.enabled;
+  }
+
   render() {
+    const button = html`
+      <button @click="${() => this.__onClick()}">Draw</button>
+    `;
+
     const canvas = html` <handwriting-textarea-canvas
       languages="en"
       @recognize="${(event: RecognizeEvent) => this.__onRecognize(event)}"
@@ -52,14 +62,8 @@ export class HandwritingTextarea extends LitElement {
 
     // TODO: Pass-through textarea attributes?
     return html`
-      <textarea cols="60" rows="5"></textarea>
-      <h2>Handwriting recognition supported? ${this.supported}</h2>
-      <p>
-        ${this.supported
-          ? 'Handwriting recognition is supported on this platform, so feel free to draw here:'
-          : 'Too bad! Handwriting recognition is not supported on this platform.'}
-      </p>
-      ${this.supported ? canvas : ''}
+      <textarea cols="60" rows="10"></textarea>
+      ${this.supported ? button : ''} ${this.enabled ? canvas : ''}
     `;
   }
 }
