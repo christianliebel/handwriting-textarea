@@ -3,9 +3,9 @@ import { property, query, state } from 'lit/decorators.js';
 import { RecognizeEvent } from './RecognizeEvent.js';
 
 // TODO: Forms participation? https://web.dev/more-capable-form-controls/#defining-a-form-associated-custom-element
-// TODO: Styled buttons
-// TODO: Selection handling
 // TODO: Overall comments
+// TODO: Note in demo/index.html if support exists
+// TODO: Layout overall
 
 export class HandwritingTextarea extends LitElement {
   static get styles() {
@@ -98,9 +98,12 @@ export class HandwritingTextarea extends LitElement {
       >
     `;
 
+    // TODO: attribute casing
     const canvas = html`
       <handwriting-textarea-canvas
-        languages="en"
+        languages="${this.languages}"
+        recognitionType="${this.recognitionType}"
+        textContext="${this.textarea?.value ?? ''}"
         @recognize="${(event: RecognizeEvent) => this.__onRecognize(event)}"
       ></handwriting-textarea-canvas>
     `;
