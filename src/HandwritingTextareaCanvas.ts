@@ -12,17 +12,22 @@ export class HandwritingTextareaCanvas extends LitElement {
       box-sizing: border-box;
       width: 100%;
       height: 100%;
-      border: 1px solid black;
+      border: 1px solid dimgray;
       touch-action: none;
 
       background-color: rgba(255 255 255 / 0.5);
       backdrop-filter: blur(3px);
     }
 
-    button {
+    handwriting-textarea-button {
       position: absolute;
       bottom: 10px;
       right: 10px;
+      background-color: #1b5e20;
+    }
+
+    handwriting-textarea-button:hover {
+      background-color: #2e7d32;
     }
   `;
 
@@ -179,7 +184,10 @@ export class HandwritingTextareaCanvas extends LitElement {
         @pointermove="${(event: PointerEvent) => this.__onPointerMove(event)}"
         @pointerup="${(event: PointerEvent) => this.__onPointerUp(event)}"
       ></canvas>
-      <button @click="${() => this.__predictAndSendEvent()}">OK</button>
+      <handwriting-textarea-button
+        @click="${() => this.__predictAndSendEvent()}"
+        >✓</handwriting-textarea-button
+      >
     `;
   }
 }

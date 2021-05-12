@@ -15,7 +15,7 @@ export class HandwritingTextarea extends LitElement {
         position: relative;
       }
 
-      button {
+      handwriting-textarea-button {
         position: absolute;
         bottom: 10px;
         right: 10px;
@@ -93,7 +93,9 @@ export class HandwritingTextarea extends LitElement {
 
   render() {
     const drawButton = html`
-      <button @click="${() => this.__toggleCanvas()}">Draw</button>
+      <handwriting-textarea-button @click="${() => this.__toggleCanvas()}"
+        >✎</handwriting-textarea-button
+      >
     `;
 
     const canvas = html`
