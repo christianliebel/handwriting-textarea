@@ -35,6 +35,7 @@ export class HandwritingTextareaCanvas extends LitElement {
   #activeOperation?: {
     stroke: HandwritingStroke;
     startTime: number;
+    pointerId: number;
   };
 
   #recognitionTimeoutHandle?: number;
@@ -72,7 +73,6 @@ export class HandwritingTextareaCanvas extends LitElement {
   private __onPointerDown(event: PointerEvent) {
     if (this.#activeOperation) {
       // Only support one pointer at a time
-      event.preventDefault();
       return;
     }
 
@@ -86,6 +86,7 @@ export class HandwritingTextareaCanvas extends LitElement {
     this.#activeOperation = {
       stroke: new HandwritingStroke(),
       startTime: Date.now(),
+      pointerId: event.pointerId,
     };
     this.__addPoint(event.offsetX, event.offsetY);
     this.#ctx?.moveTo(event.offsetX, event.offsetY);
@@ -115,7 +116,10 @@ export class HandwritingTextareaCanvas extends LitElement {
   }
 
   private __onPointerMove(event: PointerEvent) {
-    if (this.#activeOperation) {
+    if (
+      this.#activeOperation &&
+      this.#activeOperation.pointerId === event.pointerId
+    ) {
       this.__clearRecognitionTimeout();
       this.__addPoint(event.offsetX, event.offsetY);
       this.#ctx?.lineTo(event.offsetX, event.offsetY);
@@ -131,8 +135,12 @@ export class HandwritingTextareaCanvas extends LitElement {
     });
   }
 
-  private __onPointerUp() {
-    if (this.#drawing && this.#activeOperation) {
+  private __onPointerUp(event: PointerEvent) {
+    if (
+      this.#drawing &&
+      this.#activeOperation &&
+      this.#activeOperation.pointerId === event.pointerId
+    ) {
       this.#drawing.addStroke(this.#activeOperation.stroke);
       this.__setRecognitionTimeout();
     }
@@ -169,7 +177,7 @@ export class HandwritingTextareaCanvas extends LitElement {
       <canvas
         @pointerdown="${(event: PointerEvent) => this.__onPointerDown(event)}"
         @pointermove="${(event: PointerEvent) => this.__onPointerMove(event)}"
-        @pointerup="${() => this.__onPointerUp()}"
+        @pointerup="${(event: PointerEvent) => this.__onPointerUp(event)}"
       ></canvas>
       <button @click="${() => this.__predictAndSendEvent()}">OK</button>
     `;
