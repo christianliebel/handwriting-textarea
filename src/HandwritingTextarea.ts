@@ -68,9 +68,23 @@ export class HandwritingTextarea extends LitElement {
 
   private __onRecognize(event: RecognizeEvent) {
     if (this.textarea) {
-      this.textarea.value = event.detail.text;
+      this.textarea.value = this.__replaceSelectionWithText(event.detail.text);
       this.__toggleCanvas();
     }
+  }
+
+  private __replaceSelectionWithText(textToAdd: string): string {
+    if (!this.textarea) {
+      return textToAdd;
+    }
+
+    // TODO: Not 100% accurate yet
+    const { selectionStart, selectionEnd, textLength, value } = this.textarea;
+    const start = selectionStart || textLength || 0;
+    const end = selectionEnd || textLength || 0;
+    const textBefore = value.substr(0, start);
+    const textAfter = value.substr(end);
+    return `${textBefore}${textToAdd}${textAfter}`;
   }
 
   private __toggleCanvas() {
