@@ -19,6 +19,12 @@ npm i handwriting-textarea
 <handwriting-textarea></handwriting-textarea>
 ```
 
+## Supported attributes
+
+* `languages`: Comma-separated list of languages that should be recognized (default: `en`).
+* `recognitiontype`: The type of content to be recognized (`text`, `email`, `number`, `per-character`).
+* `value`: The value to show in the editor control.
+
 ## Linting with ESLint, Prettier, and Types
 To scan the project for linting errors, run
 ```bash

@@ -15,6 +15,11 @@
           "type": "\"text\"|\"email\"|\"number\"|\"per-character\"",
           "description": "The type of content to be recognized.",
           "default": "text"
+        }, {
+          "name": "value",
+          "type": "String",
+          "description": "The value to show in the editor control.",
+          "default": ""
         }
       ],
       "events": [],
