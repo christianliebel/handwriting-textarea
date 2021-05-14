@@ -4,7 +4,7 @@ import { RecognizeEvent } from './RecognizeEvent.js';
 
 /* global HandwritingDrawing, HandwritingRecognizer, HandwritingStroke */
 
-// TODO: Resize
+const RECOGNITION_TIMEOUT_IN_MS = 1_000;
 
 export class HandwritingTextareaCanvas extends LitElement {
   static readonly styles = css`
@@ -23,11 +23,11 @@ export class HandwritingTextareaCanvas extends LitElement {
       position: absolute;
       bottom: 10px;
       right: 10px;
-      background-color: #1b5e20;
+      background-color: #4caf50;
     }
 
     handwriting-textarea-button:hover {
-      background-color: #2e7d32;
+      background-color: #66bb6a;
     }
   `;
 
@@ -45,6 +45,8 @@ export class HandwritingTextareaCanvas extends LitElement {
 
   #recognitionTimeoutHandle?: number;
 
+  #resizeObserver?: ResizeObserver;
+
   @query('canvas') canvas?: HTMLCanvasElement;
 
   @property({ type: String }) languages?: string;
@@ -54,28 +56,45 @@ export class HandwritingTextareaCanvas extends LitElement {
   @property({ type: String }) recognitionType?: string;
 
   firstUpdated() {
+    // Resize the canvas when the textarea size changes
+    this.#resizeObserver = new ResizeObserver(() => this.__initializeCanvas());
+    this.#resizeObserver.observe(this);
+  }
+
+  private __initializeCanvas() {
     if (!this.canvas) {
       throw new Error('Unable to find canvas.');
     }
 
+    // assign canvas's width & height for high-DPI screens
     const clientRect = this.canvas.getBoundingClientRect();
-    this.canvas.width = clientRect.width * devicePixelRatio;
-    this.canvas.height = clientRect.height * devicePixelRatio;
+    this.canvas.width = clientRect.width * window.devicePixelRatio;
+    this.canvas.height = clientRect.height * window.devicePixelRatio;
 
-    const ctx = this.canvas?.getContext('2d', { desynchronized: true });
+    // after canvas resize, all state is lost, so we re-create the context
+    // use desynchronized context for performant drawing
+    const ctx = this.canvas.getContext('2d', { desynchronized: true });
     if (!ctx) {
       throw new Error('Unable to retrieve 2D context.');
     }
 
+    // initialize pointer style
     ctx.strokeStyle = 'black';
     ctx.lineCap = 'round';
     ctx.lineWidth = 2;
-    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    // map canvas pixels to match pointer pixels
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
     this.#ctx = ctx;
   }
 
-  private __onPointerDown(event: PointerEvent) {
+  private __onPointerDown({
+    pointerType,
+    pointerId,
+    offsetX,
+    offsetY,
+  }: PointerEvent) {
     if (this.#activeOperation) {
       // Only support one pointer at a time
       return;
@@ -85,21 +104,25 @@ export class HandwritingTextareaCanvas extends LitElement {
       // The recognizer is only created once in the lifetime of this component.
       // We need to create it here to get access of the pointer type to pass
       // it as a hint to the recognizer.
-      this.__setUpRecognizer(event);
+      this.__setUpRecognizer(pointerType);
     }
 
     this.#activeOperation = {
       stroke: new HandwritingStroke(),
+      // store startTime as a reference point for subsequent events
       startTime: Date.now(),
-      pointerId: event.pointerId,
+      // store ID to recognize the pointer during pointermove & pointerup
+      pointerId,
     };
-    this.__addPoint(event.offsetX, event.offsetY);
-    this.#ctx?.moveTo(event.offsetX, event.offsetY);
+
+    this.__addPoint(offsetX, offsetY);
+    this.#ctx?.moveTo(offsetX, offsetY);
+
+    // Clear any previous recognition timeout, canvas won't disappear anymore
+    this.__clearRecognitionTimeout();
   }
 
-  private async __setUpRecognizer({
-    pointerType,
-  }: PointerEvent): Promise<void> {
+  private async __setUpRecognizer(pointerType: string): Promise<void> {
     if (typeof navigator.createHandwritingRecognizer === 'undefined') {
       throw new Error(
         'Handwriting Recognizer API is not supported on this platform.'
@@ -110,8 +133,10 @@ export class HandwritingTextareaCanvas extends LitElement {
       languages: this.languages?.split(',') ?? [],
     });
 
+    // Make sure the pointerType matches the allowed values for recognitionType
     const allowedTypes = ['mouse', 'pen', 'touch'] as const;
     const inputType = allowedTypes.find(type => type === pointerType);
+
     this.#drawing = this.#recognizer.startDrawing({
       inputType,
       textContext: this.textContext,
@@ -121,13 +146,10 @@ export class HandwritingTextareaCanvas extends LitElement {
   }
 
   private __onPointerMove(event: PointerEvent) {
-    if (
-      this.#activeOperation &&
-      this.#activeOperation.pointerId === event.pointerId
-    ) {
-      this.__clearRecognitionTimeout();
+    if (this.#activeOperation?.pointerId === event.pointerId) {
       this.__addPoint(event.offsetX, event.offsetY);
       this.#ctx?.lineTo(event.offsetX, event.offsetY);
+
       this.#ctx?.stroke();
     }
   }
@@ -141,40 +163,37 @@ export class HandwritingTextareaCanvas extends LitElement {
   }
 
   private __onPointerUp(event: PointerEvent) {
-    if (
-      this.#drawing &&
-      this.#activeOperation &&
-      this.#activeOperation.pointerId === event.pointerId
-    ) {
+    if (this.#drawing && this.#activeOperation?.pointerId === event.pointerId) {
       this.#drawing.addStroke(this.#activeOperation.stroke);
+      this.#activeOperation = undefined;
+
+      // Set a timeout for recognizing the text and hiding the canvas
       this.__setRecognitionTimeout();
     }
-
-    this.#activeOperation = undefined;
   }
 
   private __setRecognitionTimeout() {
     this.__clearRecognitionTimeout();
     this.#recognitionTimeoutHandle = window.setTimeout(
       () => this.__predictAndSendEvent(),
-      1000
-    ); // TODO: get from outside
+      RECOGNITION_TIMEOUT_IN_MS
+    );
   }
 
   private __clearRecognitionTimeout() {
     if (this.#recognitionTimeoutHandle) {
-      clearTimeout(this.#recognitionTimeoutHandle);
+      window.clearTimeout(this.#recognitionTimeoutHandle);
     }
   }
 
   private async __predictAndSendEvent() {
-    let text = '';
     if (this.#drawing) {
       const [prediction] = await this.#drawing.getPrediction();
-      text = prediction?.text ?? '';
+      this.dispatchEvent(new RecognizeEvent(prediction?.text ?? ''));
+    } else {
+      // No drawing was made, send event with empty text to toggle canvas
+      this.dispatchEvent(new RecognizeEvent(''));
     }
-
-    this.dispatchEvent(new RecognizeEvent(text));
   }
 
   render() {
@@ -189,5 +208,10 @@ export class HandwritingTextareaCanvas extends LitElement {
         >✓</handwriting-textarea-button
       >
     `;
+  }
+
+  disconnectedCallback() {
+    this.#resizeObserver?.disconnect();
+    super.disconnectedCallback();
   }
 }

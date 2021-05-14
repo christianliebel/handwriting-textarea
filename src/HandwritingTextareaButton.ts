@@ -1,7 +1,6 @@
 import { css, html, LitElement } from 'lit';
 
 export class HandwritingTextareaButton extends LitElement {
-  // TODO: Drop Shadow
   static get styles() {
     return css`
       :host {
@@ -16,8 +15,10 @@ export class HandwritingTextareaButton extends LitElement {
         height: 56px;
         font-size: 24px;
 
-        background-color: #311b92;
+        background-color: #6002ee;
         color: white;
+
+        box-shadow: 0 5px 10px rgba(0 0 0 / 0.2);
 
         user-select: none;
 
@@ -25,7 +26,7 @@ export class HandwritingTextareaButton extends LitElement {
       }
 
       :host(:hover) {
-        background-color: #4527a0;
+        background-color: #7e3ff2;
       }
     `;
   }

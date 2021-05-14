@@ -2,23 +2,28 @@ import { css, html, LitElement } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { RecognizeEvent } from './RecognizeEvent.js';
 
-// TODO: Forms participation? https://web.dev/more-capable-form-controls/#defining-a-form-associated-custom-element
-// TODO: Overall comments
-// TODO: Note in demo/index.html if support exists
-// TODO: Layout overall
-
 export class HandwritingTextarea extends LitElement {
   static get styles() {
     return css`
       :host {
-        display: inline-grid;
+        display: inline-block;
+      }
+
+      .wrapper {
+        display: grid;
         position: relative;
+        height: 100%;
+      }
+
+      textarea {
+        resize: none;
       }
 
       handwriting-textarea-button {
         position: absolute;
         bottom: 10px;
         right: 10px;
+        transform: scale(-1, 1);
       }
 
       handwriting-textarea-canvas {
@@ -34,11 +39,17 @@ export class HandwritingTextarea extends LitElement {
 
   @property({ type: String }) recognitionType = 'text';
 
+  @property({ type: String }) value = '';
+
   @state() supported = false;
 
   @state() enabled = false;
 
+  @state() textContext = '';
+
   @query('textarea') textarea?: HTMLTextAreaElement;
+
+  #hadFocus = false;
 
   async connectedCallback() {
     super.connectedCallback();
@@ -48,6 +59,7 @@ export class HandwritingTextarea extends LitElement {
 
   private async __isHandwritingRecognitionSupported() {
     if (typeof navigator.queryHandwritingRecognizerSupport === 'undefined') {
+      // API is not available on this platform
       return false;
     }
 
@@ -57,61 +69,86 @@ export class HandwritingTextarea extends LitElement {
     });
 
     if (!result.languages || !result.alternatives) {
-      // Creating the handwriting recognizer may fail if constraints can't be met.
-      // In this case, we behave as if Handwriting Recognition API would not available.
+      // Handwriting features are not supported. Behave as if API would not be available.
       return false;
     }
 
-    // At this point, Handwriting Recognition API is supported and the constraints are met.
+    // At this point, both the Handwriting Recognition API and our constraints are supported.
     return true;
   }
 
   private __onRecognize(event: RecognizeEvent) {
     if (this.textarea) {
-      this.textarea.value = this.__replaceSelectionWithText(event.detail.text);
+      // Replace the selected text with the recognized text
+      const { before, after } = this.__splitTextAtSelection();
+      this.textarea.value = `${before}${event.detail.text}${after}`;
+
       this.__toggleCanvas();
     }
   }
 
-  private __replaceSelectionWithText(textToAdd: string): string {
-    if (!this.textarea) {
-      return textToAdd;
+  private __splitTextAtSelection(): { before: string; after: string } {
+    const text = this.textarea?.value ?? '';
+    const { start, end } = this.__getSelection();
+    return { before: text.substr(0, start), after: text.substr(end) };
+  }
+
+  private __getSelection(): { start: number; end: number } {
+    if (!this.#hadFocus) {
+      // if the textarea never had focus, we assume that the user wants to add
+      // text add the end (selectionStart and selectionEnd would be 0)
+      const length = this.textarea?.value.length ?? 0;
+      return { start: length, end: length };
     }
 
-    // TODO: Not 100% accurate yet
-    const { selectionStart, selectionEnd, textLength, value } = this.textarea;
-    const start = selectionStart || textLength || 0;
-    const end = selectionEnd || textLength || 0;
-    const textBefore = value.substr(0, start);
-    const textAfter = value.substr(end);
-    return `${textBefore}${textToAdd}${textAfter}`;
+    return {
+      start: this.textarea?.selectionStart ?? 0,
+      end: this.textarea?.selectionEnd ?? 0,
+    };
   }
 
   private __toggleCanvas() {
     this.enabled = this.supported && !this.enabled;
+    if (this.enabled) {
+      // Set the text before the selection as the context for recognition
+      this.textContext = this.__splitTextAtSelection().before;
+    }
+  }
+
+  private __setFocus() {
+    this.#hadFocus = true;
+  }
+
+  private __setValue(event: Event) {
+    this.value = (event.target as HTMLInputElement)?.value;
   }
 
   render() {
     const drawButton = html`
       <handwriting-textarea-button @click="${() => this.__toggleCanvas()}"
-        >✎</handwriting-textarea-button
-      >
+        >✎
+      </handwriting-textarea-button>
     `;
 
-    // TODO: attribute casing
     const canvas = html`
       <handwriting-textarea-canvas
         languages="${this.languages}"
-        recognitionType="${this.recognitionType}"
-        textContext="${this.textarea?.value ?? ''}"
+        recognitiontype="${this.recognitionType}"
+        textcontext="${this.textarea?.value ?? ''}"
         @recognize="${(event: RecognizeEvent) => this.__onRecognize(event)}"
       ></handwriting-textarea-canvas>
     `;
 
     return html`
-      <textarea style="width: 500px; height: 300px;"></textarea>
-      ${this.supported && !this.enabled ? drawButton : ''}
-      ${this.enabled ? canvas : ''}
+      <div class="wrapper">
+        <textarea
+          .value="${this.value}"
+          @input="${(evt: Event) => this.__setValue(evt)}"
+          @focus="${() => this.__setFocus()}"
+        ></textarea>
+        ${this.supported && !this.enabled ? drawButton : ''}
+        ${this.enabled ? canvas : ''}
+      </div>
     `;
   }
 }

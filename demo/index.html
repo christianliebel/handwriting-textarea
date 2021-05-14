@@ -6,6 +6,11 @@
     body {
       background: #fafafa;
     }
+
+    handwriting-textarea {
+      display: block;
+      height: 300px;
+    }
   </style>
 </head>
 <body>
@@ -17,6 +22,11 @@
 
     render(
       html`
+        <p>
+          Handwriting recognition API is
+          ${ 'createHandwritingRecognizer' in navigator ? '' : 'not' }
+          supported on this platform.
+        </p>
         <handwriting-textarea></handwriting-textarea>
       `,
       document.querySelector('#demo')
