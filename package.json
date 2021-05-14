@@ -1,6 +1,6 @@
 {
   "name": "handwriting-textarea",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Webcomponent handwriting-textarea following open-wc recommendations",
   "author": "Christian Liebel",
   "license": "Apache-2.0",
