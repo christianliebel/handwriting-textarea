@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { RecognizeEvent } from './RecognizeEvent.js';
+import { RequestAnimationDataEvent } from './RequestAnimationDataEvent.js';
 
 export class HandwritingTextarea extends LitElement {
   static get styles() {
@@ -123,6 +124,20 @@ export class HandwritingTextarea extends LitElement {
     this.value = (event.target as HTMLInputElement)?.value;
   }
 
+  private __onRequestAnimationData(event: RequestAnimationDataEvent) {
+    if (!this.textarea) {
+      throw new Error('Unable to find textarea');
+    }
+
+    const { padding, fontSize } = window.getComputedStyle(this.textarea);
+    event.setAnimationData({
+      width: this.textarea.getBoundingClientRect().width,
+      padding: parseInt(padding, 10),
+      scrollTop: this.textarea.scrollTop,
+      fontSize,
+    });
+  }
+
   render() {
     const drawButton = html`
       <handwriting-textarea-button @click="${() => this.__toggleCanvas()}"
@@ -134,8 +149,10 @@ export class HandwritingTextarea extends LitElement {
       <handwriting-textarea-canvas
         languages="${this.languages}"
         recognitiontype="${this.recognitionType}"
-        textcontext="${this.textarea?.value ?? ''}"
+        textcontext="${this.textContext}"
         @recognize="${(event: RecognizeEvent) => this.__onRecognize(event)}"
+        @requestanimationdata="${(event: RequestAnimationDataEvent) =>
+          this.__onRequestAnimationData(event)}"
       ></handwriting-textarea-canvas>
     `;
 

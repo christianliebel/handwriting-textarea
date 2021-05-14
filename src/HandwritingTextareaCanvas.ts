@@ -1,6 +1,8 @@
 import { css, html, LitElement } from 'lit';
 import { property, query } from 'lit/decorators.js';
+import { AnimationHelper } from './AnimationHelper.js';
 import { RecognizeEvent } from './RecognizeEvent.js';
+import { RequestAnimationDataEvent } from './RequestAnimationDataEvent.js';
 
 /* global HandwritingDrawing, HandwritingRecognizer, HandwritingStroke */
 
@@ -47,6 +49,8 @@ export class HandwritingTextareaCanvas extends LitElement {
 
   #resizeObserver?: ResizeObserver;
 
+  #animationHelper = new AnimationHelper();
+
   @query('canvas') canvas?: HTMLCanvasElement;
 
   @property({ type: String }) languages?: string;
@@ -89,12 +93,9 @@ export class HandwritingTextareaCanvas extends LitElement {
     this.#ctx = ctx;
   }
 
-  private __onPointerDown({
-    pointerType,
-    pointerId,
-    offsetX,
-    offsetY,
-  }: PointerEvent) {
+  private __onPointerDown(event: PointerEvent) {
+    event.preventDefault();
+
     if (this.#activeOperation) {
       // Only support one pointer at a time
       return;
@@ -104,7 +105,7 @@ export class HandwritingTextareaCanvas extends LitElement {
       // The recognizer is only created once in the lifetime of this component.
       // We need to create it here to get access of the pointer type to pass
       // it as a hint to the recognizer.
-      this.__setUpRecognizer(pointerType);
+      this.__setUpRecognizer(event.pointerType);
     }
 
     this.#activeOperation = {
@@ -112,11 +113,11 @@ export class HandwritingTextareaCanvas extends LitElement {
       // store startTime as a reference point for subsequent events
       startTime: Date.now(),
       // store ID to recognize the pointer during pointermove & pointerup
-      pointerId,
+      pointerId: event.pointerId,
     };
 
-    this.__addPoint(offsetX, offsetY);
-    this.#ctx?.moveTo(offsetX, offsetY);
+    this.__addPoint(event.offsetX, event.offsetY);
+    this.#ctx?.moveTo(event.offsetX, event.offsetY);
 
     // Clear any previous recognition timeout, canvas won't disappear anymore
     this.__clearRecognitionTimeout();
@@ -187,11 +188,23 @@ export class HandwritingTextareaCanvas extends LitElement {
   }
 
   private async __predictAndSendEvent() {
-    if (this.#drawing) {
-      const [prediction] = await this.#drawing.getPrediction();
+    const [prediction] = (await this.#drawing?.getPrediction()) ?? [];
+    if (prediction && this.#drawing && this.#ctx) {
+      // request animation data from the textarea
+      const requestAnimationDataEvent = new RequestAnimationDataEvent();
+      this.dispatchEvent(requestAnimationDataEvent);
+
+      // play the recognition animation
+      await this.#animationHelper.animate(
+        this.textContext ?? '',
+        prediction,
+        this.#drawing,
+        this.#ctx,
+        requestAnimationDataEvent.data
+      );
+
       this.dispatchEvent(new RecognizeEvent(prediction?.text ?? ''));
     } else {
-      // No drawing was made, send event with empty text to toggle canvas
       this.dispatchEvent(new RecognizeEvent(''));
     }
   }
@@ -205,8 +218,8 @@ export class HandwritingTextareaCanvas extends LitElement {
       ></canvas>
       <handwriting-textarea-button
         @click="${() => this.__predictAndSendEvent()}"
-        >✓</handwriting-textarea-button
-      >
+        >✓
+      </handwriting-textarea-button>
     `;
   }
 
