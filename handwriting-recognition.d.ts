@@ -38,7 +38,7 @@ declare global {
   }
 
   interface HandwritingHints {
-    // graphemeSet?: string[]; - defined in the explainer, but not in the Web IDL yet
+    graphemeSet?: string[];
     recognitionType?: 'text' | 'email' | 'number' | 'per-character' | string;
     inputType?: 'mouse' | 'touch' | 'pen';
     textContext?: string;
