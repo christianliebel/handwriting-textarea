@@ -135,13 +135,23 @@ export class HandwritingTextareaCanvas extends LitElement {
     });
 
     // Make sure the pointerType matches the allowed values for recognitionType
-    const allowedTypes = ['mouse', 'pen', 'touch'] as const;
-    const inputType = allowedTypes.find(type => type === pointerType);
+    const allowedInputTypes = ['mouse', 'stylus', 'touch'] as const;
+    const inputType = allowedInputTypes.find(type => type === pointerType);
+
+    const allowedRecognitionTypes = [
+      'text',
+      'email',
+      'number',
+      'per-character',
+    ] as const;
+    const recognitionType = allowedRecognitionTypes.find(
+      type => type === this.recognitionType
+    );
 
     this.#drawing = this.#recognizer.startDrawing({
       inputType,
-      textContext: this.textContext,
-      recognitionType: this.recognitionType,
+      textContent: this.textContext,
+      recognitionType,
       alternatives: 0,
     });
   }

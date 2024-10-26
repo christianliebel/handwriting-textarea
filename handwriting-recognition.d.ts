@@ -7,12 +7,37 @@ export {};
 declare global {
   interface Navigator {
     createHandwritingRecognizer?(
-      constraint: HandwritingModelConstraint
+      constraints: HandwritingModelConstraints
     ): Promise<HandwritingRecognizer>;
 
-    queryHandwritingRecognizerSupport?(
-      query: HandwritingFeatureQuery
-    ): Promise<HandwritingFeatureQueryResult>;
+    queryHandwritingRecognizer?(
+      constraints: HandwritingModelConstraints
+    ): Promise<HandwritingRecognizerQueryResult>;
+  }
+
+  interface HandwritingModelConstraints {
+    languages: string[];
+  }
+
+  type HandwritingRecognitionType =
+    | 'text'
+    | 'email'
+    | 'number'
+    | 'per-character';
+
+  type HandwritingInputType = 'mouse' | 'stylus' | 'touch';
+
+  interface HandwritingRecognizerQueryResult {
+    textAlternatives?: boolean;
+    textSegmentation?: boolean;
+    hints?: HandwritingHintsQueryResult;
+  }
+
+  interface HandwritingHintsQueryResult {
+    recognitionType?: HandwritingRecognitionType[];
+    inputType?: HandwritingInputType[];
+    textContext?: boolean;
+    alternatives?: boolean;
   }
 
   interface HandwritingRecognizer {
@@ -21,27 +46,11 @@ declare global {
     finish(): void;
   }
 
-  interface HandwritingModelConstraint {
-    languages: string[];
-  }
-
-  interface HandwritingFeatureQuery {
-    languages?: string[];
-    alternatives?: any;
-    segmentationResult?: any;
-  }
-
-  interface HandwritingFeatureQueryResult {
-    languages?: boolean;
-    alternatives?: boolean;
-    segmentationResult?: boolean;
-  }
-
   interface HandwritingHints {
     graphemeSet?: string[];
-    recognitionType?: 'text' | 'email' | 'number' | 'per-character' | string;
-    inputType?: 'mouse' | 'touch' | 'pen';
-    textContext?: string;
+    recognitionType?: HandwritingRecognitionType;
+    inputType?: HandwritingInputType;
+    textContent?: string;
     alternatives?: number;
   }
 
@@ -61,7 +70,7 @@ declare global {
   interface HandwritingPoint {
     x?: number;
     y?: number;
-    t?: DOMTimeStamp;
+    t?: DOMHighResTimeStamp;
   }
 
   interface HandwritingDrawing {

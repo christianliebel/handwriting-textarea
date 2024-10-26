@@ -59,17 +59,16 @@ export class HandwritingTextarea extends LitElement {
   }
 
   private async __isHandwritingRecognitionSupported() {
-    if (typeof navigator.queryHandwritingRecognizerSupport === 'undefined') {
+    if (typeof navigator.queryHandwritingRecognizer === 'undefined') {
       // API is not available on this platform
       return false;
     }
 
-    const result = await navigator.queryHandwritingRecognizerSupport({
+    const result = await navigator.queryHandwritingRecognizer({
       languages: this.languages.split(','),
-      alternatives: 0,
     });
 
-    if (!result.languages || !result.alternatives) {
+    if (!result.textAlternatives) {
       // Handwriting features are not supported. Behave as if API would not be available.
       return false;
     }
