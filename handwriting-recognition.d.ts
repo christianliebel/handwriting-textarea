@@ -12,7 +12,7 @@ declare global {
 
     queryHandwritingRecognizer?(
       constraints: HandwritingModelConstraints
-    ): Promise<HandwritingRecognizerQueryResult>;
+    ): Promise<HandwritingRecognizerQueryResult | null>;
   }
 
   interface HandwritingModelConstraints {
@@ -50,7 +50,7 @@ declare global {
     graphemeSet?: string[];
     recognitionType?: HandwritingRecognitionType;
     inputType?: HandwritingInputType;
-    textContent?: string;
+    textContext?: string;
     alternatives?: number;
   }
 

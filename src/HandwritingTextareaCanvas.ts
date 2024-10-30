@@ -150,7 +150,7 @@ export class HandwritingTextareaCanvas extends LitElement {
 
     this.#drawing = this.#recognizer.startDrawing({
       inputType,
-      textContent: this.textContext,
+      textContext: this.textContext,
       recognitionType,
       alternatives: 0,
     });
