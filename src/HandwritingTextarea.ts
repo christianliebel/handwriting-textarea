@@ -68,7 +68,7 @@ export class HandwritingTextarea extends LitElement {
       languages: this.languages.split(','),
     });
 
-    if (!result.textAlternatives) {
+    if (!result?.textSegmentation) {
       // Handwriting features are not supported. Behave as if API would not be available.
       return false;
     }
